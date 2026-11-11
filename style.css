@@ -18,7 +18,7 @@ body {
 /* Two rows of buttons at the top; the joystick gets the rest */
 .icon-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));   /* equal, whatever is inside */
   grid-auto-rows: clamp(72px, 12vh, 120px);
   gap: 12px;
   padding: 16px 16px 8px;
@@ -69,7 +69,8 @@ body {
 
 .slot-btn select {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   opacity: 0;
@@ -104,7 +105,9 @@ body {
    Sizes are that page's 300px design as percentages. */
 #joyArea {
   position: relative;
-  width: min(88vw, 48dvh, 420px);
+  width: min(88vw, 48vh, 420px);
+  width: min(88vw, 48dvh, 420px);   /* browsers without dvh keep the line above */
+  flex: 0 0 auto;
   aspect-ratio: 1;
   box-sizing: border-box;
   background: radial-gradient(circle at 38% 32%, #5a5a5a 0%, #3a3a3a 55%, #2a2a2a 100%);
