@@ -6,10 +6,14 @@ const NUS_TX_UUID      = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 let rxChar = null;
 
 const logEl = document.getElementById("log");
+const statusLine = document.getElementById("statusLine");
 const statusDot = document.getElementById("statusDot");
 
+// Full log (hidden, for desktop debugging) + latest line on screen
 function log(...args) {
-  logEl.textContent += args.join(" ") + "\n";
+  const line = args.join(" ");
+  logEl.textContent += line + "\n";
+  statusLine.textContent = line;
 }
 
 // ------------------------------------------------------------
@@ -66,9 +70,9 @@ async function sendJson(obj) {
 }
 
 // ------------------------------------------------------------
-// PLAY BUTTONS (slots 1–8)
+// PLAY BUTTONS (top row, fixed slots)
 // ------------------------------------------------------------
-document.querySelectorAll(".icon-btn").forEach(btn => {
+document.querySelectorAll(".icon-btn[data-slot]").forEach(btn => {
   btn.onclick = () => {
     const slot = Number(btn.dataset.slot);
     sendJson({ cmd: "play", slot });
@@ -76,11 +80,15 @@ document.querySelectorAll(".icon-btn").forEach(btn => {
 });
 
 // ------------------------------------------------------------
-// NEW: Play Slot 1 Button
+// SLOT PICKER + PLAY
 // ------------------------------------------------------------
-document.getElementById("playSlot1").onclick = () => {
-  const slot = Number(document.getElementById("motionSlot").value);
-  sendJson({ cmd: "play", slot });
+const slotSelect = document.getElementById("motionSlot");
+const slotLabel = document.getElementById("slotLabel");
+
+slotSelect.onchange = () => { slotLabel.textContent = slotSelect.value; };
+
+document.getElementById("playSlot").onclick = () => {
+  sendJson({ cmd: "play", slot: Number(slotSelect.value) });
 };
 
 // ------------------------------------------------------------
@@ -100,23 +108,31 @@ async function uploadMotionToRobot(slot, jsonText) {
   for (let i = 0; i < jsonText.length; i += CHUNK) {
     const chunk = jsonText.slice(i, i + CHUNK);
     await bleWrite(chunk);
-    log(`Sent chunk ${i / CHUNK + 1}`);
+    const pct = Math.round(Math.min(100, (i + CHUNK) / jsonText.length * 100));
+    log(`Uploading to slot ${slot}... ${pct}%`);
   }
 
   // End upload
   await bleWrite("\nEND\n");
 
-  log("Upload complete");
+  log(`Upload to slot ${slot} sent`);
 }
 
-document.getElementById("uploadMotion").onclick = async () => {
-  const fileInput = document.getElementById("motionFile");
-  const slot = Number(document.getElementById("motionSlot").value);
+// Upload: pick a .json file, it goes straight to the chosen slot
+const fileInput = document.getElementById("motionFile");
 
-  if (!fileInput.files.length) return log("No file selected");
+document.getElementById("uploadMotion").onclick = () => {
+  if (!rxChar) return log("Not connected");
+  fileInput.click();
+};
 
-  const text = await fileInput.files[0].text();
-  uploadMotionToRobot(slot, text);
+fileInput.onchange = async () => {
+  if (!fileInput.files.length) return;
+  const file = fileInput.files[0];
+  const slot = Number(slotSelect.value);
+  log(`${file.name} -> slot ${slot}`);
+  await uploadMotionToRobot(slot, await file.text());
+  fileInput.value = "";   // allow picking the same file again
 };
 
 // ------------------------------------------------------------
